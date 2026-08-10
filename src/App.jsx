@@ -1,121 +1,119 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "./assets/vite.svg";
-import heroImg from "./assets/hero.png";
+import { useState, useEffect, useRef } from "react";
 import "./App.css";
 
+const pad = (n) => String(n).padStart(2, "0");
+
 function App() {
-  const [count, setCount] = useState(0);
+  const [mode, setMode] = useState("countdown"); // "countdown" | "stopwatch"
+  const [isRunning, setIsRunning] = useState(false);
+  const [countdownMinutes, setCountdownMinutes] = useState(5);
+  const [secondsLeft, setSecondsLeft] = useState(countdownMinutes * 60);
+  const [secondsElapsed, setSecondsElapsed] = useState(0);
+  const intervalRef = useRef(null);
+
+  // Tick
+  useEffect(() => {
+    if (!isRunning) return;
+
+    intervalRef.current = setInterval(() => {
+      if (mode === "countdown") {
+        setSecondsLeft((s) => {
+          if (s <= 1) {
+            clearInterval(intervalRef.current);
+            setIsRunning(false);
+            return 0;
+          }
+          return s - 1;
+        });
+      } else {
+        setSecondsElapsed((s) => s + 1);
+      }
+    }, 1000);
+
+    return () => clearInterval(intervalRef.current);
+  }, [isRunning, mode]);
+
+  const handleModeChange = (newMode) => {
+    if (isRunning) return;
+    setMode(newMode);
+  };
+
+  const handleStartPause = () => setIsRunning((r) => !r);
+
+  const handleReset = () => {
+    setIsRunning(false);
+    clearInterval(intervalRef.current);
+    if (mode === "countdown") {
+      setSecondsLeft(countdownMinutes * 60);
+    } else {
+      setSecondsElapsed(0);
+    }
+  };
+
+  const handleMinutesChange = (e) => {
+    const value = Math.max(1, Math.min(180, Number(e.target.value) || 1));
+    setCountdownMinutes(value);
+    setSecondsLeft(value * 60);
+  };
+
+  const displaySeconds = mode === "countdown" ? secondsLeft : secondsElapsed;
+  const minutes = Math.floor(displaySeconds / 60);
+  const seconds = displaySeconds % 60;
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started, Ciprian!!!</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
+    <section id="center">
+      <div className="mode-toggle">
         <button
           type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
+          className={mode === "countdown" ? "active" : ""}
+          onClick={() => handleModeChange("countdown")}
+          disabled={isRunning}
         >
-          Count is {count}
+          Countdown
         </button>
-      </section>
+        <button
+          type="button"
+          className={mode === "stopwatch" ? "active" : ""}
+          onClick={() => handleModeChange("stopwatch")}
+          disabled={isRunning}
+        >
+          Stopwatch
+        </button>
+      </div>
 
-      <div className="ticks"></div>
+      <div className="time-display">
+        {pad(minutes)}:{pad(seconds)}
+      </div>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      {mode === "countdown" && (
+        <div className="minutes-input">
+          <label htmlFor="minutes">Minutes</label>
+          <input
+            id="minutes"
+            type="number"
+            min="1"
+            max="180"
+            value={countdownMinutes}
+            onChange={handleMinutesChange}
+            disabled={isRunning}
+          />
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      )}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <div className="controls">
+        <button
+          type="button"
+          className="primary"
+          onClick={handleStartPause}
+          disabled={mode === "countdown" && secondsLeft === 0}
+        >
+          {isRunning ? "Pause" : "Start"}
+        </button>
+        <button type="button" onClick={handleReset}>
+          Reset
+        </button>
+      </div>
+    </section>
   );
 }
 
