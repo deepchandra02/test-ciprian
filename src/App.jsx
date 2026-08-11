@@ -7,7 +7,8 @@ function App() {
   const [mode, setMode] = useState("countdown"); // "countdown" | "stopwatch"
   const [isRunning, setIsRunning] = useState(false);
   const [countdownMinutes, setCountdownMinutes] = useState(5);
-  const [secondsLeft, setSecondsLeft] = useState(countdownMinutes * 60);
+  const [countdownSeconds, setCountdownSeconds] = useState(0);
+  const [secondsLeft, setSecondsLeft] = useState(5 * 60);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const intervalRef = useRef(null);
 
@@ -40,20 +41,28 @@ function App() {
 
   const handleStartPause = () => setIsRunning((r) => !r);
 
+  const getTotalSeconds = (minutes, seconds) => Math.max(0, minutes * 60 + seconds);
+
   const handleReset = () => {
     setIsRunning(false);
     clearInterval(intervalRef.current);
     if (mode === "countdown") {
-      setSecondsLeft(countdownMinutes * 60);
+      setSecondsLeft(getTotalSeconds(countdownMinutes, countdownSeconds));
     } else {
       setSecondsElapsed(0);
     }
   };
 
   const handleMinutesChange = (e) => {
-    const value = Math.max(1, Math.min(180, Number(e.target.value) || 1));
+    const value = Math.max(0, Math.min(180, Number(e.target.value) || 0));
     setCountdownMinutes(value);
-    setSecondsLeft(value * 60);
+    setSecondsLeft(getTotalSeconds(value, countdownSeconds));
+  };
+
+  const handleSecondsChange = (e) => {
+    const value = Math.max(0, Math.min(59, Number(e.target.value) || 0));
+    setCountdownSeconds(value);
+    setSecondsLeft(getTotalSeconds(countdownMinutes, value));
   };
 
   const displaySeconds = mode === "countdown" ? secondsLeft : secondsElapsed;
@@ -86,17 +95,32 @@ function App() {
       </div>
 
       {mode === "countdown" && (
-        <div className="minutes-input">
-          <label htmlFor="minutes">Minutes</label>
-          <input
-            id="minutes"
-            type="number"
-            min="1"
-            max="180"
-            value={countdownMinutes}
-            onChange={handleMinutesChange}
-            disabled={isRunning}
-          />
+        <div className="countdown-inputs">
+          <div className="input-group">
+            <label htmlFor="minutes">Minutes</label>
+            <input
+              id="minutes"
+              type="number"
+              min="0"
+              max="180"
+              value={countdownMinutes}
+              onChange={handleMinutesChange}
+              disabled={isRunning}
+            />
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="seconds">Seconds</label>
+            <input
+              id="seconds"
+              type="number"
+              min="0"
+              max="59"
+              value={countdownSeconds}
+              onChange={handleSecondsChange}
+              disabled={isRunning}
+            />
+          </div>
         </div>
       )}
 
